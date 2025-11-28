@@ -1,0 +1,269 @@
+openapi: 3.0.0
+info:
+  title: API Perpustakaan
+  version: 1.0.0
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  /petugas/login:
+    post:
+      summary: Login petugas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login sukses (mengembalikan JWT)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+                  data:
+                    type: object
+
+  /buku:
+    get:
+      summary: Ambil semua buku
+      responses:
+        "200":
+          description: Berhasil mengambil daftar buku
+
+    post:
+      summary: Tambah buku baru
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                judul:
+                  type: string
+                pengarang:
+                  type: string
+                penerbit:
+                  type: string
+                tahun_terbit:
+                  type: integer
+                kategori:
+                  type: string
+      responses:
+        "201":
+          description: Buku berhasil ditambahkan
+
+  /buku/{id}:
+    get:
+      summary: Ambil buku berdasarkan ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Detail buku
+
+    put:
+      summary: Update buku berdasarkan ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                judul:
+                  type: string
+                pengarang:
+                  type: string
+                penerbit:
+                  type: string
+                tahun_terbit:
+                  type: integer
+                kategori:
+                  type: string
+      responses:
+        "200":
+          description: Buku berhasil diupdate
+
+    delete:
+      summary: Hapus buku berdasarkan ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Buku berhasil dihapus
+
+  /anggota:
+    get:
+      summary: Ambil semua anggota
+      responses:
+        "200":
+          description: Daftar anggota
+
+    post:
+      summary: Tambah anggota baru
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nama_anggota:
+                  type: string
+                alamat:
+                  type: string
+                no_hp:
+                  type: string
+      responses:
+        "201":
+          description: Anggota berhasil ditambahkan
+
+  /anggota/{id}:
+    get:
+      summary: Ambil anggota berdasarkan ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Detail anggota
+
+    put:
+      summary: Update anggota berdasarkan ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nama_anggota:
+                  type: string
+                alamat:
+                  type: string
+                no_hp:
+                  type: string
+      responses:
+        "200":
+          description: Anggota berhasil diupdate
+
+  /peminjaman:
+    get:
+      summary: Ambil semua peminjaman
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Daftar peminjaman (hanya untuk petugas)
+
+    post:
+      summary: Catat peminjaman baru
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id_anggota:
+                  type: integer
+                id_buku:
+                  type: integer
+                tanggal_pinjam:
+                  type: string
+                  format: date-time
+      responses:
+        "201":
+          description: Peminjaman berhasil dicatat
+
+  /peminjaman/{id}:
+    get:
+      summary: Ambil peminjaman berdasarkan ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Detail peminjaman
+
+    put:
+      summary: Tandai pengembalian peminjaman
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tanggal_kembali:
+                  type: string
+                  format: date-time
+      responses:
+        "200":
+          description: Peminjaman berhasil diperbarui

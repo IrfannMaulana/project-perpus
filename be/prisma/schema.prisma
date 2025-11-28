@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+/*
+  Tabel: Petugas
+*/
+model Petugas {
+  id_petugas   Int            @id @default(autoincrement())
+  nama_petugas String
+  username     String         @unique
+  password     String
+
+  // Relasi ke peminjaman
+  peminjaman   Peminjaman[]
+}
+
+/*
+  Tabel: Anggota
+*/
+model Anggota {
+  id_anggota   Int            @id @default(autoincrement())
+  nama_anggota String
+  alamat       String
+  no_hp        String
+
+  // Relasi ke peminjaman
+  peminjaman   Peminjaman[]
+}
+
+/*
+  Tabel: Buku
+*/
+model Buku {
+  id_buku      Int            @id @default(autoincrement())
+  judul        String
+  pengarang    String
+  penerbit     String
+  tahun_terbit Int
+  kategori     String
+
+  // Relasi ke peminjaman
+  peminjaman   Peminjaman[]
+}
+
+/*
+  Tabel: Peminjaman
+*/
+model Peminjaman {
+  id_peminjaman   Int      @id @default(autoincrement())
+  
+  // FK
+  id_anggota      Int
+  id_buku         Int
+  id_petugas      Int
+
+  // Kolom tanggal
+  tanggal_pinjam   DateTime
+  tanggal_kembali  DateTime
+
+  status           String   // dipinjam / kembali
+
+  // Relasi ke tabel lain
+  anggota   Anggota  @relation(fields: [id_anggota], references: [id_anggota])
+  buku      Buku     @relation(fields: [id_buku], references: [id_buku])
+  petugas   Petugas  @relation(fields: [id_petugas], references: [id_petugas])
+}
