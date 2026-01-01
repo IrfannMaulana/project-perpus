@@ -1,2 +1,2 @@
-admin
-passwordPerpus123
+usernam: admin
+password: passwordPerpus123
