@@ -10,6 +10,45 @@ components:
       scheme: bearer
       bearerFormat: JWT
 
+    schemas:
+      Peminjaman:
+        type: object
+        properties:
+          id_peminjaman:
+            type: integer
+            example: 12
+          status:
+            type: string
+            example: dipinjam
+          tanggal_pinjam:
+            type: string
+            format: date-time
+          tanggal_kembali:
+            type: string
+            format: date-time
+            nullable: true
+          anggota:
+            type: object
+            properties:
+              id_anggota:
+                type: integer
+              nama_anggota:
+                type: string
+          buku:
+            type: object
+            properties:
+              id_buku:
+                type: integer
+              judul:
+                type: string
+          petugas:
+            type: object
+            properties:
+              id_petugas:
+                type: integer
+              nama_petugas:
+                type: string
+
 paths:
   /petugas/login:
     post:
@@ -40,13 +79,59 @@ paths:
                   data:
                     type: object
 
-  /buku:
+  /petugas/me:
     get:
-      summary: Ambil semua buku
+      summary: Ambil profil petugas yang sedang login
+      security:
+        - bearerAuth: []
       responses:
         "200":
-          description: Berhasil mengambil daftar buku
+          description: Data profil petugas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
 
+  /buku:
+    get:
+      summary: Ambil semua buku (support search & pagination)
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Keyword pencarian (judul, pengarang, penerbit, kategori)
+        - name: page
+          in: query
+          schema:
+            type: integer
+          description: Halaman (default 1)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          description: Jumlah item per halaman (default 20)
+      responses:
+        "200":
+          description: Daftar buku
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  meta:
+                    type: object
     post:
       summary: Tambah buku baru
       security:
@@ -84,7 +169,6 @@ paths:
       responses:
         "200":
           description: Detail buku
-
     put:
       summary: Update buku berdasarkan ID
       security:
@@ -115,7 +199,6 @@ paths:
       responses:
         "200":
           description: Buku berhasil diupdate
-
     delete:
       summary: Hapus buku berdasarkan ID
       security:
@@ -132,11 +215,39 @@ paths:
 
   /anggota:
     get:
-      summary: Ambil semua anggota
+      summary: Ambil semua anggota (support search & pagination)
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Keyword pencarian (nama_anggota, alamat, no_hp)
+        - name: page
+          in: query
+          schema:
+            type: integer
+          description: Halaman (default 1)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          description: Jumlah item per halaman (default 20)
       responses:
         "200":
           description: Daftar anggota
-
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  meta:
+                    type: object
     post:
       summary: Tambah anggota baru
       security:
@@ -148,6 +259,8 @@ paths:
             schema:
               type: object
               properties:
+                nis:
+                  type: string
                 nama_anggota:
                   type: string
                 alamat:
@@ -170,7 +283,6 @@ paths:
       responses:
         "200":
           description: Detail anggota
-
     put:
       summary: Update anggota berdasarkan ID
       security:
@@ -198,14 +310,116 @@ paths:
         "200":
           description: Anggota berhasil diupdate
 
-  /peminjaman:
-    get:
-      summary: Ambil semua peminjaman
+    delete:
+      tags:
+        - Anggota
+      summary: Hapus anggota (hanya jika belum pernah meminjam)
+      description: >
+        Menghapus data anggota.
+        Anggota hanya dapat dihapus jika belum pernah memiliki data peminjaman.
+        Jika sudah pernah meminjam, server akan menolak penghapusan.
       security:
         - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID anggota
+          example: 5
       responses:
         "200":
-          description: Daftar peminjaman (hanya untuk petugas)
+          description: Anggota berhasil dihapus
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Anggota berhasil dihapus
+        "400":
+          description: Anggota tidak bisa dihapus karena pernah meminjam
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Anggota tidak bisa dihapus karena pernah meminjam buku
+        "401":
+          description: Token tidak valid atau tidak ada
+        "404":
+          description: Anggota tidak ditemukan
+        "500":
+          description: Kesalahan server
+
+  /peminjaman:
+    get:
+      summary: Ambil semua peminjaman (support filters & laporan)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [dipinjam, kembali]
+          description: Filter berdasarkan status peminjaman
+        - name: id_anggota
+          in: query
+          schema:
+            type: integer
+          description: Filter berdasarkan ID anggota
+        - name: id_buku
+          in: query
+          schema:
+            type: integer
+          description: Filter berdasarkan ID buku
+        - name: bulan
+          in: query
+          schema:
+            type: integer
+          description: Bulan untuk laporan (1-12)
+        - name: tahun
+          in: query
+          schema:
+            type: integer
+          description: Tahun untuk laporan bulanan
+        - name: start
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Tanggal mulai (YYYY-MM-DD)
+        - name: end
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Tanggal akhir (YYYY-MM-DD)
+      responses:
+        "200":
+          description: Daftar peminjaman sesuai filter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
 
     post:
       summary: Catat peminjaman baru
@@ -243,7 +457,85 @@ paths:
       responses:
         "200":
           description: Detail peminjaman
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+    put:
+      tags:
+        - Peminjaman
+      summary: Edit peminjaman aktif (koreksi salah input)
+      description: >
+        Mengubah data peminjaman yang masih berstatus "dipinjam".
+        Digunakan jika petugas salah memilih anggota atau buku saat mencatat peminjaman.
+        Tidak dapat digunakan jika status sudah "kembali".
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID peminjaman
+          example: 12
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id_anggota:
+                  type: integer
+                  example: 3
+                id_buku:
+                  type: integer
+                  example: 7
+                tanggal_pinjam:
+                  type: string
+                  format: date-time
+                  example: "2025-01-02T10:15:00Z"
+      responses:
+        "200":
+          description: Peminjaman berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Peminjaman diperbarui
+                  data:
+                    $ref: "#/components/schemas/Peminjaman"
+        "400":
+          description: Data tidak bisa diedit
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Peminjaman sudah selesai
+        "401":
+          description: Tidak terautentikasi
+        "404":
+          description: Peminjaman tidak ditemukan
 
+  /peminjaman/{id}/return:
     put:
       summary: Tandai pengembalian peminjaman
       security:
@@ -267,3 +559,12 @@ paths:
       responses:
         "200":
           description: Peminjaman berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object

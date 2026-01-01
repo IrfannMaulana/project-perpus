@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:http/http.dart'
+    as http; // boleh dihapus kalau sudah tidak dipakai
+import 'dart:convert'; // masih dipakai untuk debug, boleh juga dihapus
+import '../../services/buku_service.dart';
 
 class TambahBukuPage extends StatefulWidget {
   @override
@@ -15,29 +17,47 @@ class _TambahBukuPageState extends State<TambahBukuPage> {
   final TextEditingController tahunController = TextEditingController();
 
   Future<void> tambahBuku() async {
-    final url = Uri.parse("http://192.168.1.x:3000/buku");
+    setState(() {
+      // kalau mau, pakai flag loading di sini
+    });
 
-    final response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
+    try {
+      final payload = {
         "judul": judulController.text,
         "pengarang": pengarangController.text,
         "penerbit": penerbitController.text,
         "tahun_terbit": int.tryParse(tahunController.text) ?? 0,
         "kategori": kategoriController.text,
-      }),
-    );
+      };
 
-    if (response.statusCode == 200) {
+      debugPrint('REQUEST BODY: ${jsonEncode(payload)}');
+
+      final ok = await BukuService.createBuku(payload);
+
+      if (!mounted) return;
+
+      if (ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Buku berhasil ditambahkan")),
+        );
+        Navigator.pop(context, true); // supaya list bisa di-refresh
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Gagal menambahkan buku")));
+      }
+    } catch (e) {
+      debugPrint('ERROR tambahBuku: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Buku berhasil ditambahkan")));
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Gagal menambahkan buku")));
+      ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
+    } finally {
+      if (mounted) {
+        setState(() {
+          // reset loading di sini kalau pakai flag
+        });
+      }
     }
   }
 
@@ -58,8 +78,7 @@ class _TambahBukuPageState extends State<TambahBukuPage> {
         backgroundColor: Colors.grey[300],
         elevation: 0,
         centerTitle: true,
-        title: Icon(Icons.book, size: 32, color: Colors.black),
-        leading: Icon(Icons.menu, color: Colors.black),
+        title: Text("Tambah Buku", style: TextStyle(color: Colors.black)),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
@@ -134,25 +153,6 @@ class _TambahBukuPageState extends State<TambahBukuPage> {
             ),
           ),
         ),
-      ),
-
-      // Bottom Navigation Bar (seperti desain kamu)
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.grey[300],
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.black54,
-        currentIndex: 0, // halaman ini aktif
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushReplacementNamed(context, '/list-buku');
-          }
-          // index 1 & 2 bisa ditambah nanti
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.book), label: ""),
-          BottomNavigationBarItem(icon: Icon(Icons.article), label: ""),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: ""),
-        ],
       ),
     );
   }

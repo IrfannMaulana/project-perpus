@@ -10,6 +10,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 /*
@@ -29,7 +30,8 @@ model Petugas {
   Tabel: Anggota
 */
 model Anggota {
-  id_anggota   Int            @id @default(autoincrement())
+  id_anggota   Int      @id @default(autoincrement())
+  nis          String  @unique
   nama_anggota String
   alamat       String
   no_hp        String
@@ -65,10 +67,10 @@ model Peminjaman {
   id_petugas      Int
 
   // Kolom tanggal
-  tanggal_pinjam   DateTime
-  tanggal_kembali  DateTime
-
-  status           String   // dipinjam / kembali
+  tanggal_pinjam   DateTime @default(now())
+  tanggal_kembali  DateTime?
+  status           String   @default("dipinjam")
+  // dipinjam / kembali
 
   // Relasi ke tabel lain
   anggota   Anggota  @relation(fields: [id_anggota], references: [id_anggota])

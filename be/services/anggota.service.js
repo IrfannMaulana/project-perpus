@@ -1,45 +1,58 @@
+// services/anggota.service.js
 const prisma = require("../prisma");
 
-module.exports = {
-  getAll: () => {
-    // kalau ingin exclude anggota yang dinonaktifkan gunakan where: { is_active: true }
-    return prisma.anggota.findMany();
-  },
+class AnggotaService {
+  async getAll(q) {
+    const where = q
+      ? {
+          OR: [
+            { nis: { contains: q } },
+            { nama_anggota: { contains: q } },
+            { alamat: { contains: q } },
+            { no_hp: { contains: q } },
+          ],
+        }
+      : {};
 
-  getById: (id) => {
+    return prisma.anggota.findMany({
+      where,
+      orderBy: { id_anggota: "asc" },
+    });
+  }
+
+  async getById(id) {
     return prisma.anggota.findUnique({
       where: { id_anggota: id },
     });
-  },
+  }
 
-  create: (data) => {
+  async create(data) {
     return prisma.anggota.create({
-      data: {
-        nama_anggota: data.nama_anggota,
-        alamat: data.alamat || "",
-        no_hp: data.no_hp || "",
-        // jika Anda menambahkan field lain (mis. NIS), tambahkan di sini
-      },
+      data,
     });
-  },
+  }
 
-  update: (id, data) => {
+  async update(id, data) {
     return prisma.anggota.update({
       where: { id_anggota: id },
-      data: {
-        nama_anggota: data.nama_anggota,
-        alamat: data.alamat,
-        no_hp: data.no_hp,
-      },
+      data,
     });
-  },
+  }
 
-  // contoh soft-delete (opsional)
-  deactivate: (id) => {
-    // butuh kolom is_active boolean di schema.prisma
-    return prisma.anggota.update({
+  async remove(id) {
+    // cek apakah anggota pernah meminjam
+    const total = await prisma.peminjaman.count({
       where: { id_anggota: id },
-      data: { is_active: false },
     });
-  },
-};
+    if (total > 0) {
+      throw new Error("ANGGOTA_PUNYA_PEMINJAMAN");
+    }
+
+    // jika aman → hapus
+    return prisma.anggota.delete({
+      where: { id_anggota: id },
+    });
+  }
+}
+
+module.exports = new AnggotaService();

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:http/http.dart'
+    as http; // bisa dihapus kalau tidak dipakai lagi
 import 'dart:convert';
+import '../../services/buku_service.dart';
 
 class EditBukuPage extends StatefulWidget {
   final Map buku;
@@ -18,44 +20,64 @@ class _EditBukuPageState extends State<EditBukuPage> {
   late TextEditingController kategoriController;
   late TextEditingController tahunController;
 
+  bool loading = false;
+
   @override
   void initState() {
     super.initState();
 
-    judulController = TextEditingController(text: widget.buku['judul']);
-    pengarangController = TextEditingController(text: widget.buku['pengarang']);
-    penerbitController = TextEditingController(text: widget.buku['penerbit']);
-    kategoriController = TextEditingController(text: widget.buku['kategori']);
+    judulController = TextEditingController(text: widget.buku['judul'] ?? '');
+    pengarangController = TextEditingController(
+      text: widget.buku['pengarang'] ?? '',
+    );
+    penerbitController = TextEditingController(
+      text: widget.buku['penerbit'] ?? '',
+    );
+    kategoriController = TextEditingController(
+      text: widget.buku['kategori'] ?? '',
+    );
+    // aman jika null
     tahunController = TextEditingController(
-      text: widget.buku['tahun_terbit'].toString(),
+      text: widget.buku['tahun_terbit']?.toString() ?? '',
     );
   }
 
   Future<void> editBuku() async {
-    final url = Uri.parse("http://192.168.1.x/buku/${widget.buku['id_buku']}");
+    setState(() => loading = true);
 
-    final response = await http.put(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
+    try {
+      final payload = {
         "judul": judulController.text,
         "pengarang": pengarangController.text,
         "penerbit": penerbitController.text,
         "tahun_terbit": int.tryParse(tahunController.text) ?? 0,
         "kategori": kategoriController.text,
-      }),
-    );
+      };
 
-    if (response.statusCode == 200) {
+      debugPrint('REQUEST BODY: ${jsonEncode(payload)}');
+
+      final ok = await BukuService.updateBuku(widget.buku['id_buku'], payload);
+
+      if (!mounted) return;
+
+      if (ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Data buku berhasil diperbarui")),
+        );
+        Navigator.pop(context, true); // supaya list refresh
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Gagal memperbarui buku")));
+      }
+    } catch (e) {
+      debugPrint('ERROR editBuku: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Data buku berhasil diperbarui")));
-
-      Navigator.pushReplacementNamed(context, '/list-buku');
-    } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Gagal memperbarui buku")));
+      ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
+    } finally {
+      if (mounted) setState(() => loading = false);
     }
   }
 
@@ -78,7 +100,6 @@ class _EditBukuPageState extends State<EditBukuPage> {
         centerTitle: true,
         title: Text("Edit Buku", style: TextStyle(color: Colors.black)),
       ),
-
       body: SingleChildScrollView(
         padding: EdgeInsets.all(20),
         child: Column(
@@ -88,36 +109,31 @@ class _EditBukuPageState extends State<EditBukuPage> {
               decoration: inputStyle("Judul Buku"),
             ),
             SizedBox(height: 16),
-
             TextField(
               controller: pengarangController,
               decoration: inputStyle("Pengarang"),
             ),
             SizedBox(height: 16),
-
             TextField(
               controller: penerbitController,
               decoration: inputStyle("Penerbit"),
             ),
             SizedBox(height: 16),
-
             TextField(
               controller: kategoriController,
               decoration: inputStyle("Kategori"),
             ),
             SizedBox(height: 16),
-
             TextField(
               controller: tahunController,
               decoration: inputStyle("Tahun Terbit"),
               keyboardType: TextInputType.number,
             ),
             SizedBox(height: 24),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: editBuku,
+                onPressed: loading ? null : editBuku,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black87,
                   padding: EdgeInsets.symmetric(vertical: 14),
@@ -125,10 +141,19 @@ class _EditBukuPageState extends State<EditBukuPage> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: Text(
-                  "Simpan Perubahan",
-                  style: TextStyle(color: Colors.white),
-                ),
+                child: loading
+                    ? SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation(Colors.white),
+                        ),
+                      )
+                    : Text(
+                        "Simpan Perubahan",
+                        style: TextStyle(color: Colors.white),
+                      ),
               ),
             ),
           ],

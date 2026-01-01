@@ -1,3 +1,4 @@
+// middlewares/auth.js
 const jwt = require("jsonwebtoken");
 const prisma = require("../prisma");
 const SECRET = process.env.JWT_SECRET || "secret_default";
@@ -21,9 +22,10 @@ module.exports = async (req, res, next) => {
       return res.status(401).json({ success: false, message: "Token invalid" });
     }
 
-    req.user = petugas; // simpan info petugas
+    req.user = petugas;
     next();
   } catch (err) {
+    console.error("Auth middleware error:", err);
     return res
       .status(401)
       .json({ success: false, message: "Token invalid / expired" });

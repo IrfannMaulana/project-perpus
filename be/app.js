@@ -16,8 +16,7 @@ app.use("/buku", require("./routes/buku.route"));
 // nanti bisa tambah:
 app.use("/petugas", require("./routes/petugas.route"));
 app.use("/anggota", require("./routes/anggota.route"));
-
-// app.use("/peminjaman", require("./routes/peminjaman.route"));
+app.use("/peminjaman", require("./routes/peminjaman.route"));
 
 // Baca file YAML (pastikan file doc.yaml ada di folder yang sama)
 const file = fs.readFileSync("./doc.yaml", "utf-8");

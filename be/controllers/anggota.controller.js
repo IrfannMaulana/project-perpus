@@ -1,68 +1,121 @@
+// controllers/anggota.controller.js
 const AnggotaService = require("../services/anggota.service");
 
 module.exports = {
+  // GET /anggota?q=...
   getAll: async (req, res) => {
     try {
-      const list = await AnggotaService.getAll();
-      res.status(200).json({ success: true, data: list });
+      const q = req.query.q || "";
+      const data = await AnggotaService.getAll(q);
+      return res.json({
+        success: true,
+        data,
+      });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ success: false, error: err.message });
+      console.error("GET /anggota error:", err);
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
     }
   },
 
+  // GET /anggota/:id
   getById: async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = Number(req.params.id);
       const data = await AnggotaService.getById(id);
-      if (!data)
+
+      if (!data) {
         return res
           .status(404)
           .json({ success: false, message: "Anggota tidak ditemukan" });
-      res.status(200).json({ success: true, data });
+      }
+
+      return res.json({
+        success: true,
+        data,
+      });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ success: false, error: err.message });
+      console.error("GET /anggota/:id error:", err);
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
     }
   },
 
+  // POST /anggota
   create: async (req, res) => {
     try {
-      // minimal validation
-      const { nama_anggota, alamat, no_hp } = req.body;
-      if (!nama_anggota)
-        return res
-          .status(400)
-          .json({ success: false, message: "nama_anggota wajib diisi" });
+      const payload = {
+        nis: req.body.nis, // bisa null/undefined
+        nama_anggota: req.body.nama_anggota,
+        alamat: req.body.alamat,
+        no_hp: req.body.no_hp,
+      };
 
-      const created = await AnggotaService.create(req.body);
-      res
-        .status(201)
-        .json({
-          success: true,
-          message: "Anggota berhasil ditambahkan",
-          data: created,
-        });
+      const data = await AnggotaService.create(payload);
+
+      return res.status(201).json({
+        success: true,
+        message: "Anggota berhasil ditambahkan",
+        data,
+      });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ success: false, error: err.message });
+      console.error("POST /anggota error:", err);
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
     }
   },
 
+  // PUT /anggota/:id
   update: async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const updated = await AnggotaService.update(id, req.body);
-      res
-        .status(200)
-        .json({
-          success: true,
-          message: "Anggota berhasil diupdate",
-          data: updated,
-        });
+      const id = Number(req.params.id);
+      const payload = {
+        nis: req.body.nis,
+        nama_anggota: req.body.nama_anggota,
+        alamat: req.body.alamat,
+        no_hp: req.body.no_hp,
+      };
+
+      const data = await AnggotaService.update(id, payload);
+
+      return res.json({
+        success: true,
+        message: "Anggota berhasil diperbarui",
+        data,
+      });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ success: false, error: err.message });
+      console.error("PUT /anggota/:id error:", err);
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  },
+
+  // DELETE /anggota/:id
+  remove: async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      await AnggotaService.remove(id);
+
+      return res.json({
+        success: true,
+        message: "Anggota berhasil dihapus",
+      });
+    } catch (err) {
+      if (err.message === "ANGGOTA_PUNYA_PEMINJAMAN") {
+        return res.status(400).json({
+          success: false,
+          message: "Anggota tidak bisa dihapus karena pernah meminjam buku",
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+      });
     }
   },
 };

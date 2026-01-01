@@ -15,6 +15,7 @@ router.post("/", auth, AnggotaController.create);
 // PUT /anggota/:id (protected)
 router.put("/:id", auth, AnggotaController.update);
 
-// NOTE: tidak ada route DELETE fisik (sesuai keputusan Anda).
+//delete hanya yang tidak pernah pinjam
+router.delete("/:id", auth, AnggotaController.remove);
 
 module.exports = router;
